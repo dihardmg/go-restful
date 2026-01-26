@@ -34,7 +34,10 @@ import (
 // @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	// Load configuration
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
 	// Initialize database
 	db, err := database.InitDB(cfg)
@@ -92,7 +95,7 @@ func main() {
 	}
 
 	// Start server
-	addr := ":" + cfg.ServerPort
+	addr := cfg.GetServerAddr()
 	log.Printf("Server starting on %s", addr)
 	log.Printf("Swagger UI available at http://localhost:%s/swagger/", cfg.ServerPort)
 	log.Printf("API Documentation at http://localhost:%s/swagger/doc.json", cfg.ServerPort)
