@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache & Test API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.secondary {
+            background: #2196F3;
+        }
+        button.secondary:hover {
+            background: #0b7dda;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .step {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ffeeba;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Go REST API - Test & Debug Tool</h1>
+
+        <div class="warning">
+            <strong>⚠️ Masalah Swagger UI:</strong>
+            <p>Swagger UI menampilkan URL ganda: <code>/api/v1/api/v1/products</code></p>
+            <p><strong>Penyebab:</strong> Browser cache menyimpan konfigurasi Swagger lama</p>
+        </div>
+
+        <div class="section">
+            <h2>✅ Solusi 1: Gunakan API Test Form Di Bawah (PALING MUDAH)</h2>
+            <p>Form ini bypass Swagger UI dan langsung test API:</p>
+
+            <h3>Create Product</h3>
+            <button onclick="createProduct()">Test Create Product</button>
+            <pre id="createResult" class="code"></pre>
+
+            <h3>Get All Products</h3>
+            <button onclick="getProducts()">Test Get All Products</button>
+            <pre id="getResult" class="code"></pre>
+
+            <h3>Get Product by ID</h3>
+            <input type="number" id="productId" value="1" min="1" placeholder="Product ID">
+            <button onclick="getProductById()">Test Get Product</button>
+            <pre id="getByIdResult" class="code"></pre>
+
+            <h3>Update Product</h3>
+            <input type="number" id="updateId" value="1" min="1" placeholder="Product ID">
+            <button onclick="updateProduct()">Test Update Product</button>
+            <pre id="updateResult" class="code"></pre>
+
+            <h3>Delete Product</h3>
+            <input type="number" id="deleteId" value="1" min="1" placeholder="Product ID">
+            <button onclick="deleteProduct()">Test Delete Product</button>
+            <pre id="deleteResult" class="code"></pre>
+        </div>
+
+        <div class="section">
+            <h2>🧹 Solusi 2: Clear Browser Cache</h2>
+
+            <h3>Option A: Hard Refresh</h3>
+            <div class="step">
+                <p>Tekan tombol di bawah atau keyboard shortcut:</p>
+                <button onclick="hardRefresh()" class="secondary">Hard Refresh (Ctrl+Shift+R)</button>
+                <p><strong>Windows:</strong> Ctrl + Shift + R atau Ctrl + F5</p>
+                <p><strong>Mac:</strong> Cmd + Shift + R</p>
+            </div>
+
+            <h3>Option B: Clear Site Data</h3>
+            <div class="step">
+                <p>Ikuti langkah ini:</p>
+                <ol>
+                    <li>Klik icon <strong>gembok/lock 🔒</strong> di address bar</li>
+                    <li>Klik <strong>"Site settings"</strong></li>
+                    <li>Scroll ke <strong>"Usage"</strong> atau <strong>"Clear data"</strong></li>
+                    <li>Klik <strong>"Clear site data"</strong></li>
+                    <li>Refresh halaman (F5)</li>
+                </ol>
+            </div>
+
+            <h3>Option C: Buka di Incognito Mode (PASTI BERHASIL)</h3>
+            <div class="step">
+                <p>Buka Swagger UI di Incognito/Private Window:</p>
+                <button onclick="openIncognito()" class="secondary">Buka Panduan Incognito</button>
+                <p><strong>Chrome:</strong> Ctrl + Shift + N, lalu buka localhost:8080/swagger/index.html</p>
+                <p><strong>Edge:</strong> Ctrl + Shift + P, lalu buka localhost:8080/swagger/index.html</p>
+                <p><strong>Firefox:</strong> Ctrl + Shift + P, lalu buka localhost:8080/swagger/index.html</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Solusi 3: Gunakan test.http di VS Code</h2>
+            <p>File <code>test.http</code> pasti berjalan karena tidak ada cache:</p>
+            <ol>
+                <li>Buka VS Code</li>
+                <li>Buka file <code>test.http</code></li>
+                <li>Install extension "REST Client" jika belum</li>
+                <li>Klik "Send Request" di atas request yang ingin dijalankan</li>
+            </ol>
+            <button onclick="copyTestHttp()" class="secondary">Copy Contoh Command</button>
+        </div>
+
+        <div class="section">
+            <h2>📝 Solusi 4: Curl Commands (Terminal)</h2>
+            <div class="code">
+                <strong>Health Check:</strong><br>
+                curl http://localhost:8080/ping<br><br>
+
+                <strong>Create Product:</strong><br>
+                curl -X POST http://localhost:8080/api/v1/products \<br>
+                &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+                &nbsp;&nbsp;-d '{"name":"Gaming Laptop","description":"High-performance gaming laptop","price":1500,"stock":10}'<br><br>
+
+                <strong>Get All Products:</strong><br>
+                curl http://localhost:8080/api/v1/products<br><br>
+
+                <strong>Get Product by ID:</strong><br>
+                curl http://localhost:8080/api/v1/products/1<br><br>
+
+                <strong>Update Product:</strong><br>
+                curl -X PUT http://localhost:8080/api/v1/products/1 \<br>
+                &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+                &nbsp;&nbsp;-d '{"name":"Updated Laptop","description":"Updated description","price":2000,"stock":5}'<br><br>
+
+                <strong>Delete Product:</strong><br>
+                curl -X DELETE http://localhost:8080/api/v1/products/1
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+
+        async function createProduct() {
+            const result = document.getElementById('createResult');
+            result.textContent = 'Sending request...';
+
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'Gaming Laptop',
+                        description: 'High-performance gaming laptop',
+                        price: 1500,
+                        stock: 10
+                    })
+                });
+
+                const data = await response.json();
+                result.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+
+                if (response.ok) {
+                    result.className = 'code success';
+                } else {
+                    result.className = 'code error';
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+                result.className = 'code error';
+            }
+        }
+
+        async function getProducts() {
+            const result = document.getElementById('getResult');
+            result.textContent = 'Sending request...';
+
+            try {
+                const response = await fetch(`${API_BASE}/products?page=1&limit=10`);
+                const data = await response.json();
+                result.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+
+                if (response.ok) {
+                    result.className = 'code success';
+                } else {
+                    result.className = 'code error';
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+                result.className = 'code error';
+            }
+        }
+
+        async function getProductById() {
+            const id = document.getElementById('productId').value;
+            const result = document.getElementById('getByIdResult');
+            result.textContent = 'Sending request...';
+
+            try {
+                const response = await fetch(`${API_BASE}/products/${id}`);
+                const data = await response.json();
+                result.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+
+                if (response.ok) {
+                    result.className = 'code success';
+                } else {
+                    result.className = 'code error';
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+                result.className = 'code error';
+            }
+        }
+
+        async function updateProduct() {
+            const id = document.getElementById('updateId').value;
+            const result = document.getElementById('updateResult');
+            result.textContent = 'Sending request...';
+
+            try {
+                const response = await fetch(`${API_BASE}/products/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'Updated Gaming Laptop',
+                        description: 'Updated high-performance gaming laptop',
+                        price: 2000,
+                        stock: 5
+                    })
+                });
+
+                const data = await response.json();
+                result.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+
+                if (response.ok) {
+                    result.className = 'code success';
+                } else {
+                    result.className = 'code error';
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+                result.className = 'code error';
+            }
+        }
+
+        async function deleteProduct() {
+            const id = document.getElementById('deleteId').value;
+            const result = document.getElementById('deleteResult');
+            result.textContent = 'Sending request...';
+
+            try {
+                const response = await fetch(`${API_BASE}/products/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.status === 204) {
+                    result.textContent = `Status: ${response.status}\n\nProduct deleted successfully (No Content)`;
+                    result.className = 'code success';
+                } else {
+                    const data = await response.json();
+                    result.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'code error';
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+                result.className = 'code error';
+            }
+        }
+
+        function hardRefresh() {
+            if (confirm('Ingin me-refresh halaman dan menghapus cache?\n\nTekan OK untuk refresh.')) {
+                location.reload(true);
+            }
+        }
+
+        function openIncognito() {
+            alert('Panduan Buka Incognito Mode:\n\n' +
+                'Chrome/Edge:\n' +
+                '1. Tekan Ctrl + Shift + N (Windows) atau Cmd + Shift + N (Mac)\n' +
+                '2. Di jendela Incognito, buka: http://localhost:8080/swagger/index.html\n' +
+                '3. Test Swagger UI dari sana\n\n' +
+                'Firefox:\n' +
+                '1. Tekan Ctrl + Shift + P (Windows) atau Cmd + Shift + P (Mac)\n' +
+                '2. Di jendela Private, buka: http://localhost:8080/swagger/index.html\n' +
+                '3. Test Swagger UI dari sana\n\n' +
+                'Incognito mode TIDAK menggunakan cache, jadi pasti berhasil!');
+        }
+
+        function copyTestHttp() {
+            const text = `### Go REST API Test
+### Copy ini ke file test.http atau gunakan REST Client
+
+### Health Check
+GET http://localhost:8080/ping
+
+### Create Product
+POST http://localhost:8080/api/v1/products
+Content-Type: application/json
+
+{
+  "name": "Gaming Laptop",
+  "description": "High-performance gaming laptop",
+  "price": 1500,
+  "stock": 10
+}
+
+### Get All Products
+GET http://localhost:8080/api/v1/products
+
+### Get Product by ID
+GET http://localhost:8080/api/v1/products/1
+
+### Update Product
+PUT http://localhost:8080/api/v1/products/1
+Content-Type: application/json
+
+{
+  "name": "Updated Laptop",
+  "description": "Updated description",
+  "price": 2000,
+  "stock": 5
+}
+
+### Delete Product
+DELETE http://localhost:8080/api/v1/products/1`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Test commands berhasil di-copy!\n\nPaste di test.http atau REST Client');
+            });
+        }
+
+        // Auto-check API health on load
+        window.onload = async function() {
+            try {
+                const response = await fetch('http://localhost:8080/ping');
+                if (response.ok) {
+                    const healthDiv = document.createElement('div');
+                    healthDiv.className = 'status success';
+                    healthDiv.innerHTML = '<strong>✅ Server Status: Online</strong><br>API is running correctly at http://localhost:8080';
+                    document.querySelector('.container').insertBefore(healthDiv, document.querySelector('.warning'));
+                }
+            } catch (error) {
+                const healthDiv = document.createElement('div');
+                healthDiv.className = 'status error';
+                healthDiv.innerHTML = '<strong>❌ Server Status: Offline</strong><br>API tidak dapat diakses. Pastikan server berjalan dengan: docker-compose up --build';
+                document.querySelector('.container').insertBefore(healthDiv, document.querySelector('.warning'));
+            }
+        };
+    </script>
+</body>
+</html>

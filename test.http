@@ -1,0 +1,335 @@
+### Go REST API Test File
+### Use with REST Client extension in VS Code
+### Install: https://marketplace.visualstudio.com/item?itemName=humao.rest-client
+
+@baseUrl = http://localhost:8080
+@apiVersion = api/v1
+
+###############################################################################
+# Health Check
+###############################################################################
+
+### Health Check - Ping
+GET {{baseUrl}}/ping
+
+###############################################################################
+# Product CRUD Operations
+###############################################################################
+
+### 1. Create Product - Gaming Laptop
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Gaming Laptop",
+  "description": "High-performance gaming laptop with RTX 4090",
+  "price": 2500,
+  "stock": 10
+}
+
+### 2. Create Product - Office Laptop
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Office Laptop",
+  "description": "Lightweight laptop for office work",
+  "price": 800,
+  "stock": 25
+}
+
+### 3. Create Product - Gaming Desktop
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Gaming Desktop PC",
+  "description": "High-end gaming desktop computer",
+  "price": 3200,
+  "stock": 5
+}
+
+### 4. Create Product - Wireless Mouse
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Wireless Mouse",
+  "description": "Ergonomic wireless mouse",
+  "price": 45,
+  "stock": 100
+}
+
+### 5. Create Product - Mechanical Keyboard
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Mechanical Keyboard",
+  "description": "RGB mechanical gaming keyboard",
+  "price": 120,
+  "stock": 50
+}
+
+### 6. Create Product - Monitor 27"
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "27-inch Monitor",
+  "description": "4K UHD monitor with HDR",
+  "price": 450,
+  "stock": 30
+}
+
+###############################################################################
+# GET Operations
+###############################################################################
+
+### Get All Products (Default Pagination)
+GET {{baseUrl}}/{{apiVersion}}/products
+
+### Get All Products - Page 1, Limit 5
+GET {{baseUrl}}/{{apiVersion}}/products?page=1&limit=5
+
+### Get All Products - Page 2, Limit 3
+GET {{baseUrl}}/{{apiVersion}}/products?page=2&limit=3
+
+### Get Product by ID - ID 1
+GET {{baseUrl}}/{{apiVersion}}/products/18
+
+### Get Product by ID - ID 2
+GET {{baseUrl}}/{{apiVersion}}/products/2
+
+### Get Product by ID - ID 3
+GET {{baseUrl}}/{{apiVersion}}/products/1
+
+###############################################################################
+# UPDATE Operations
+###############################################################################
+
+### Update Product - ID 1 (Update Price and Stock)
+PUT {{baseUrl}}/{{apiVersion}}/products/1
+Content-Type: application/json
+
+{
+  "name": "Gaming Laptop Pro",
+  "description": "High-performance gaming laptop with RTX 4090 and 64GB RAM",
+  "price": 3500,
+  "stock": 1
+}
+
+### Update Product - ID 2 (Update Name)
+PUT {{baseUrl}}/{{apiVersion}}/products/2
+Content-Type: application/json
+
+{
+  "name": "Business Laptop Ultra",
+  "description": "Ultra-thin business laptop with long battery life",
+  "price": 950,
+  "stock": 20
+}
+
+### Update Product - ID 4 (Discount Price)
+PUT {{baseUrl}}/{{apiVersion}}/products/4
+Content-Type: application/json
+
+{
+  "name": "Wireless Mouse",
+  "description": "Ergonomic wireless mouse with silent click",
+  "price": 35,
+  "stock": 150
+}
+
+###############################################################################
+# Validation Tests (Should Return 400 Bad Request)
+###############################################################################
+
+### Test Validation - Missing Required Field (name)
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "description": "Product without name",
+  "price": 100,
+  "stock": 10
+}
+
+### Test Validation - Missing Required Field (price)
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Product without price",
+  "description": "This should fail",
+  "stock": 10
+}
+
+### Test Validation - Zero Price (Should Fail - price must be > 0)
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Invalid Product",
+  "description": "Price is zero",
+  "price": 0,
+  "stock": 10
+}
+
+### Test Validation - Negative Price (Should Fail)
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Invalid Product",
+  "description": "Negative price",
+  "price": -100,
+  "stock": 10
+}
+
+### Test Validation - Negative Stock (Should Fail - stock must be >= 0)
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Invalid Product",
+  "description": "Negative stock",
+  "price": 100,
+  "stock": -5
+}
+
+###############################################################################
+# Error Handling Tests (Should Return 404 Not Found)
+###############################################################################
+
+### Get Non-existent Product - ID 999
+GET {{baseUrl}}/{{apiVersion}}/products/999
+
+### Update Non-existent Product - ID 999
+PUT {{baseUrl}}/{{apiVersion}}/products/999
+Content-Type: application/json
+
+{
+  "name": "This Should Fail",
+  "description": "Product does not exist",
+  "price": 100,
+  "stock": 10
+}
+
+###############################################################################
+# DELETE Operations
+###############################################################################
+
+### Delete Product - ID 6
+DELETE {{baseUrl}}/{{apiVersion}}/products/6
+
+### Verify Deletion - Try to Get Deleted Product (Should Return 404)
+GET {{baseUrl}}/{{apiVersion}}/products/6
+
+### Delete Product - ID 5
+DELETE {{baseUrl}}/{{apiVersion}}/products/5
+
+### Delete Product - ID 4
+DELETE {{baseUrl}}/{{apiVersion}}/products/4
+
+### Delete Product - ID 3
+DELETE {{baseUrl}}/{{apiVersion}}/products/3
+
+###############################################################################
+# Final Verification
+###############################################################################
+
+### Get All Products (After Deletions)
+GET {{baseUrl}}/{{apiVersion}}/products
+
+### Get Product - ID 1 (Should Still Exist)
+GET {{baseUrl}}/{{apiVersion}}/products/1
+
+### Get Product - ID 2 (Should Still Exist)
+GET {{baseUrl}}/{{apiVersion}}/products/2
+
+###############################################################################
+# Advanced Tests
+###############################################################################
+
+### Test Pagination - Large Page Size
+GET {{baseUrl}}/{{apiVersion}}/products?page=1&limit=100
+
+### Test Pagination - Small Page Size
+GET {{baseUrl}}/{{apiVersion}}/products?page=1&limit=2
+
+### Test Pagination - Page Beyond Results
+GET {{baseUrl}}/{{apiVersion}}/products?page=999&limit=10
+
+### Create Product with Long Description
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Premium Workstation",
+  "description": "Ultimate workstation for video editing, 3D rendering, and AI development. Features dual Xeon processors, 128GB ECC RAM, NVIDIA RTX A6000, 4TB NVMe SSD, and 10Gb Ethernet. Perfect for professionals who need maximum performance.",
+  "price": 8500,
+  "stock": 2
+}
+
+### Create Product with Maximum Values
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Super Premium Product",
+  "description": "Most expensive product",
+  "price": 999999.99,
+  "stock": 0
+}
+
+### Create Product with Minimum Values
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Budget Product",
+  "description": "Cheapest product",
+  "price": 0.01,
+  "stock": 1
+}
+
+###############################################################################
+# Performance Tests
+###############################################################################
+
+### Create Multiple Products Rapidly (Uncomment to test)
+# @name=create1
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Test Product 1",
+  "description": "Performance test",
+  "price": 100,
+  "stock": 10
+}
+
+###
+# @name=create2
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Test Product 2",
+  "description": "Performance test",
+  "price": 200,
+  "stock": 20
+}
+
+###
+# @name=create3
+POST {{baseUrl}}/{{apiVersion}}/products
+Content-Type: application/json
+
+{
+  "name": "Test Product 3",
+  "description": "Performance test",
+  "price": 300,
+  "stock": 30
+}

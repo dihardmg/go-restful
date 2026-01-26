@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go REST API - Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui.css">
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *,
+        *:before,
+        *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Roboto", sans-serif;
+        }
+        .topbar {
+            background-color: #1f2937;
+            padding: 15px 0;
+        }
+        .topbar-wrapper {
+            max-width: 1460px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .topbar-wrapper .link {
+            display: flex;
+            align-items: center;
+            color: #fff;
+            text-decoration: none;
+        }
+        .topbar-wrapper .link img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .topbar-wrapper .link span {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .info {
+            margin: 0 0 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-wrapper">
+            <a href="/" class="link">
+                <span>Go REST API</span>
+            </a>
+        </div>
+    </div>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui-bundle.js" charset="UTF-8"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: "/swagger/doc.json",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: -1,
+                docExpansion: "list",
+                persistAuthorization: true,
+                displayRequestDuration: true,
+                filter: true,
+                tryItOutEnabled: true,
+                syntaxHighlight: {
+                    activate: true,
+                    theme: "monokai"
+                },
+                validatorUrl: null,
+                showRequestHeaders: true,
+                showCommonExtensions: true
+            });
+
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>
