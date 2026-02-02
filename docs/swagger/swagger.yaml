@@ -1,5 +1,14 @@
 basePath: /api/v1
 definitions:
+  handlers.BulkCreateRequest:
+    properties:
+      products:
+        items:
+          $ref: '#/definitions/handlers.CreateProductRequest'
+        type: array
+    required:
+    - products
+    type: object
   handlers.CreateProductRequest:
     properties:
       description:
@@ -19,27 +28,63 @@ definitions:
     - name
     - price
     type: object
+  handlers.ErrorDetail:
+    properties:
+      code:
+        example: NOT_FOUND
+        type: string
+      message:
+        example: Product with id 999 not found
+        type: string
+    type: object
+  handlers.ErrorMeta:
+    properties:
+      timestamp:
+        example: "2026-01-16T14:23:41.761Z"
+        type: string
+      trace_id:
+        example: b79b7627-fc60-4a43-8215-efb4739f7d1d
+        type: string
+    type: object
   handlers.ErrorResponse:
     properties:
       error:
-        example: Product not found
+        $ref: '#/definitions/handlers.ErrorDetail'
+      meta:
+        $ref: '#/definitions/handlers.ErrorMeta'
+    type: object
+  handlers.MetaResponse:
+    properties:
+      limit:
+        example: 10
+        type: integer
+      page:
+        example: 1
+        type: integer
+      total:
+        example: 14
+        type: integer
+      total_pages:
+        example: 2
+        type: integer
+      trace_id:
+        example: 1234555xxxx
         type: string
     type: object
   handlers.PaginatedResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/models.Product'
+          $ref: '#/definitions/handlers.ProductResponse'
         type: array
-      limit:
-        type: integer
-      page:
-        type: integer
-      total:
-        type: integer
+      meta:
+        $ref: '#/definitions/handlers.MetaResponse'
     type: object
   handlers.ProductResponse:
     properties:
+      created_at:
+        example: "2026-01-28T13:35:27.813525Z"
+        type: string
       description:
         example: High-performance gaming laptop
         type: string
@@ -55,6 +100,22 @@ definitions:
       stock:
         example: 10
         type: integer
+      updated_at:
+        example: "2026-01-28T13:35:27.813525Z"
+        type: string
+    type: object
+  handlers.SingleProductResponse:
+    properties:
+      data:
+        $ref: '#/definitions/handlers.ProductResponse'
+      meta:
+        $ref: '#/definitions/handlers.SuccessMeta'
+    type: object
+  handlers.SuccessMeta:
+    properties:
+      trace_id:
+        example: 815ad63d-26ff-4940-83dd-c74a115187b9
+        type: string
     type: object
   handlers.UpdateProductRequest:
     properties:
@@ -75,27 +136,6 @@ definitions:
     - name
     - price
     type: object
-  models.Product:
-    properties:
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      price:
-        type: number
-      stock:
-        minimum: 0
-        type: integer
-      updated_at:
-        type: string
-    required:
-    - name
-    - price
-    type: object
 host: localhost:8080
 info:
   contact:
@@ -110,7 +150,7 @@ info:
   title: Go REST API
   version: "1.0"
 paths:
-  /api/v1/products:
+  /products:
     get:
       consumes:
       - application/json
@@ -157,7 +197,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/handlers.ProductResponse'
+            $ref: '#/definitions/handlers.SingleProductResponse'
         "400":
           description: Bad Request
           schema:
@@ -169,7 +209,7 @@ paths:
       summary: Create a new product
       tags:
       - products
-  /api/v1/products/{id}:
+  /products/{id}:
     delete:
       consumes:
       - application/json
@@ -216,7 +256,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.ProductResponse'
+            $ref: '#/definitions/handlers.SingleProductResponse'
         "404":
           description: Not Found
           schema:
@@ -250,7 +290,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.ProductResponse'
+            $ref: '#/definitions/handlers.SingleProductResponse'
         "400":
           description: Bad Request
           schema:
@@ -264,6 +304,70 @@ paths:
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
       summary: Update a product
+      tags:
+      - products
+  /products/bulk:
+    post:
+      consumes:
+      - application/json
+      description: Create multiple products in parallel using goroutines
+      parameters:
+      - description: Array of products
+        in: body
+        name: products
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.BulkCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/handlers.ProductResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Bulk create products
+      tags:
+      - products
+  /products/multiple:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve multiple products by their IDs in parallel using goroutines
+      parameters:
+      - description: Comma-separated product IDs
+        example: 1,2,3
+        in: query
+        name: ids
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.ProductResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Get multiple products by IDs
       tags:
       - products
 securityDefinitions:

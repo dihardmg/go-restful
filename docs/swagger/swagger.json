@@ -18,7 +18,7 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
-        "/api/v1/products": {
+        "/products": {
             "get": {
                 "description": "Retrieve a paginated list of all products",
                 "consumes": [
@@ -89,7 +89,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ProductResponse"
+                            "$ref": "#/definitions/handlers.SingleProductResponse"
                         }
                     },
                     "400": {
@@ -107,7 +107,104 @@
                 }
             }
         },
-        "/api/v1/products/{id}": {
+        "/products/bulk": {
+            "post": {
+                "description": "Create multiple products in parallel using goroutines",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Bulk create products",
+                "parameters": [
+                    {
+                        "description": "Array of products",
+                        "name": "products",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.BulkCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.ProductResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/multiple": {
+            "get": {
+                "description": "Retrieve multiple products by their IDs in parallel using goroutines",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get multiple products by IDs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "1,2,3",
+                        "description": "Comma-separated product IDs",
+                        "name": "ids",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.ProductResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}": {
             "get": {
                 "description": "Retrieve a single product by its ID",
                 "consumes": [
@@ -133,7 +230,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ProductResponse"
+                            "$ref": "#/definitions/handlers.SingleProductResponse"
                         }
                     },
                     "404": {
@@ -184,7 +281,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.ProductResponse"
+                            "$ref": "#/definitions/handlers.SingleProductResponse"
                         }
                     },
                     "400": {
@@ -255,6 +352,20 @@
         }
     },
     "definitions": {
+        "handlers.BulkCreateRequest": {
+            "type": "object",
+            "required": [
+                "products"
+            ],
+            "properties": {
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.CreateProductRequest"
+                    }
+                }
+            }
+        },
         "handlers.CreateProductRequest": {
             "type": "object",
             "required": [
@@ -281,12 +392,65 @@
                 }
             }
         },
+        "handlers.ErrorDetail": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "NOT_FOUND"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Product with id 999 not found"
+                }
+            }
+        },
+        "handlers.ErrorMeta": {
+            "type": "object",
+            "properties": {
+                "timestamp": {
+                    "type": "string",
+                    "example": "2026-01-16T14:23:41.761Z"
+                },
+                "trace_id": {
+                    "type": "string",
+                    "example": "b79b7627-fc60-4a43-8215-efb4739f7d1d"
+                }
+            }
+        },
         "handlers.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
+                    "$ref": "#/definitions/handlers.ErrorDetail"
+                },
+                "meta": {
+                    "$ref": "#/definitions/handlers.ErrorMeta"
+                }
+            }
+        },
+        "handlers.MetaResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 14
+                },
+                "total_pages": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "trace_id": {
                     "type": "string",
-                    "example": "Product not found"
+                    "example": "1234555xxxx"
                 }
             }
         },
@@ -296,23 +460,21 @@
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Product"
+                        "$ref": "#/definitions/handlers.ProductResponse"
                     }
                 },
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
+                "meta": {
+                    "$ref": "#/definitions/handlers.MetaResponse"
                 }
             }
         },
         "handlers.ProductResponse": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-28T13:35:27.813525Z"
+                },
                 "description": {
                     "type": "string",
                     "example": "High-performance gaming laptop"
@@ -332,6 +494,30 @@
                 "stock": {
                     "type": "integer",
                     "example": 10
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-28T13:35:27.813525Z"
+                }
+            }
+        },
+        "handlers.SingleProductResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/handlers.ProductResponse"
+                },
+                "meta": {
+                    "$ref": "#/definitions/handlers.SuccessMeta"
+                }
+            }
+        },
+        "handlers.SuccessMeta": {
+            "type": "object",
+            "properties": {
+                "trace_id": {
+                    "type": "string",
+                    "example": "815ad63d-26ff-4940-83dd-c74a115187b9"
                 }
             }
         },
@@ -358,37 +544,6 @@
                     "type": "integer",
                     "minimum": 0,
                     "example": 5
-                }
-            }
-        },
-        "models.Product": {
-            "type": "object",
-            "required": [
-                "name",
-                "price"
-            ],
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number"
-                },
-                "stock": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         }
