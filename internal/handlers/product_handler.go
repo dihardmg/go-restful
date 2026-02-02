@@ -18,6 +18,11 @@ type ProductHandler struct {
 	repo repository.ProductRepository
 }
 
+const (
+	// TraceIDKey is the context key for trace ID
+	TraceIDKey = "trace_id"
+)
+
 // NewProductHandler creates a new product handler
 func NewProductHandler(repo repository.ProductRepository) *ProductHandler {
 	return &ProductHandler{repo: repo}
@@ -108,7 +113,7 @@ type SingleProductResponse struct {
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	var req CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, newErrorResponseWithErr("BAD_REQUEST", err))
+		c.JSON(http.StatusBadRequest, newErrorResponseWithErr(c, "BAD_REQUEST", err))
 		return
 	}
 
@@ -120,7 +125,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	if err := h.repo.Create(product); err != nil {
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to create product"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to create product"))
 		return
 	}
 
@@ -149,7 +154,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 			UpdatedAt:   product.UpdatedAt,
 		},
 		Meta: SuccessMeta{
-			TraceID: generateTraceID(),
+			TraceID: getTraceID(c),
 		},
 	})
 }
@@ -168,17 +173,17 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 func (h *ProductHandler) GetProduct(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Invalid product ID"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Invalid product ID"))
 		return
 	}
 
 	product, err := h.repo.GetByID(uint(id))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, newErrorResponse("NOT_FOUND", "Product not found"))
+			c.JSON(http.StatusNotFound, newErrorResponse(c, "NOT_FOUND", "Product not found"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to retrieve product"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to retrieve product"))
 		return
 	}
 
@@ -193,7 +198,7 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 			UpdatedAt:   product.UpdatedAt,
 		},
 		Meta: SuccessMeta{
-			TraceID: generateTraceID(),
+			TraceID: getTraceID(c),
 		},
 	})
 }
@@ -224,7 +229,7 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 
 	products, total, err := h.repo.GetAll(limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to retrieve products"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to retrieve products"))
 		return
 	}
 
@@ -248,13 +253,10 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 		totalPages++
 	}
 
-	// Generate trace ID for logging & monitoring
-	traceID := generateTraceID()
-
 	c.JSON(http.StatusOK, PaginatedResponse{
 		Data: productResponses,
 		Meta: MetaResponse{
-			TraceID:    traceID,
+			TraceID:    getTraceID(c),
 			Total:      total,
 			Page:       page,
 			Limit:      limit,
@@ -279,13 +281,13 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Invalid product ID"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Invalid product ID"))
 		return
 	}
 
 	var req UpdateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, newErrorResponseWithErr("BAD_REQUEST", err))
+		c.JSON(http.StatusBadRequest, newErrorResponseWithErr(c, "BAD_REQUEST", err))
 		return
 	}
 
@@ -293,10 +295,10 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	product, err := h.repo.GetByID(uint(id))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, newErrorResponse("NOT_FOUND", "Product not found"))
+			c.JSON(http.StatusNotFound, newErrorResponse(c, "NOT_FOUND", "Product not found"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to retrieve product"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to retrieve product"))
 		return
 	}
 
@@ -307,7 +309,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	product.Stock = req.Stock
 
 	if err := h.repo.Update(product); err != nil {
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to update product"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to update product"))
 		return
 	}
 
@@ -322,7 +324,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 			UpdatedAt:   product.UpdatedAt,
 		},
 		Meta: SuccessMeta{
-			TraceID: generateTraceID(),
+			TraceID: getTraceID(c),
 		},
 	})
 }
@@ -342,16 +344,16 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Invalid product ID"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Invalid product ID"))
 		return
 	}
 
 	if err := h.repo.Delete(uint(id)); err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, newErrorResponse("NOT_FOUND", "Product not found"))
+			c.JSON(http.StatusNotFound, newErrorResponse(c, "NOT_FOUND", "Product not found"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to delete product"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to delete product"))
 		return
 	}
 
@@ -377,17 +379,17 @@ type BulkCreateRequest struct {
 func (h *ProductHandler) BulkCreate(c *gin.Context) {
 	var req BulkCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, newErrorResponseWithErr("BAD_REQUEST", err))
+		c.JSON(http.StatusBadRequest, newErrorResponseWithErr(c, "BAD_REQUEST", err))
 		return
 	}
 
 	if len(req.Products) == 0 {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Products array cannot be empty"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Products array cannot be empty"))
 		return
 	}
 
 	if len(req.Products) > 100 {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Cannot create more than 100 products at once"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Cannot create more than 100 products at once"))
 		return
 	}
 
@@ -404,7 +406,7 @@ func (h *ProductHandler) BulkCreate(c *gin.Context) {
 
 	// Bulk create using goroutines in repository
 	if err := h.repo.BulkCreate(products); err != nil {
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to create products"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to create products"))
 		return
 	}
 
@@ -439,7 +441,7 @@ func (h *ProductHandler) BulkCreate(c *gin.Context) {
 func (h *ProductHandler) GetMultipleProducts(c *gin.Context) {
 	idsStr := c.Query("ids")
 	if idsStr == "" {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "IDs parameter is required"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "IDs parameter is required"))
 		return
 	}
 
@@ -448,26 +450,26 @@ func (h *ProductHandler) GetMultipleProducts(c *gin.Context) {
 	for _, idStr := range strings.Split(idsStr, ",") {
 		id, err := strconv.ParseUint(strings.TrimSpace(idStr), 10, 32)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Invalid ID format: "+idStr))
+			c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Invalid ID format: "+idStr))
 			return
 		}
 		ids = append(ids, uint(id))
 	}
 
 	if len(ids) == 0 {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "At least one ID is required"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "At least one ID is required"))
 		return
 	}
 
 	if len(ids) > 50 {
-		c.JSON(http.StatusBadRequest, newErrorResponse("BAD_REQUEST", "Cannot fetch more than 50 products at once"))
+		c.JSON(http.StatusBadRequest, newErrorResponse(c, "BAD_REQUEST", "Cannot fetch more than 50 products at once"))
 		return
 	}
 
 	// Fetch products in parallel using goroutines
 	products, err := h.repo.GetMultipleIDs(ids)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, newErrorResponse("INTERNAL_ERROR", "Failed to retrieve products"))
+		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to retrieve products"))
 		return
 	}
 
@@ -507,13 +509,23 @@ func (h *ProductHandler) warmProductCache(productID uint) {
 	// TODO: Integrate with caching layer
 }
 
+// getTraceID retrieves trace ID from Gin context
+func getTraceID(c *gin.Context) string {
+	if traceID, exists := c.Get(TraceIDKey); exists {
+		if id, ok := traceID.(string); ok {
+			return id
+		}
+	}
+	return uuid.New().String()
+}
+
 // generateTraceID generates a unique trace ID for logging and monitoring
 func generateTraceID() string {
 	return uuid.New().String()
 }
 
 // newErrorResponse creates a new error response with code, message, and trace ID
-func newErrorResponse(code, message string) ErrorResponse {
+func newErrorResponse(c *gin.Context, code, message string) ErrorResponse {
 	return ErrorResponse{
 		Error: ErrorDetail{
 			Code:    code,
@@ -521,13 +533,13 @@ func newErrorResponse(code, message string) ErrorResponse {
 		},
 		Meta: ErrorMeta{
 			Timestamp: time.Now().Format(time.RFC3339Nano),
-			TraceID:   generateTraceID(),
+			TraceID:   getTraceID(c),
 		},
 	}
 }
 
 // newErrorResponseWithErr creates a new error response from error object
-func newErrorResponseWithErr(code string, err error) ErrorResponse {
+func newErrorResponseWithErr(c *gin.Context, code string, err error) ErrorResponse {
 	return ErrorResponse{
 		Error: ErrorDetail{
 			Code:    code,
@@ -535,7 +547,7 @@ func newErrorResponseWithErr(code string, err error) ErrorResponse {
 		},
 		Meta: ErrorMeta{
 			Timestamp: time.Now().Format(time.RFC3339Nano),
-			TraceID:   generateTraceID(),
+			TraceID:   getTraceID(c),
 		},
 	}
 }

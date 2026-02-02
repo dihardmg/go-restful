@@ -22,6 +22,7 @@ A complete REST API built with Go, featuring Product CRUD operations, PostgreSQL
 - Environment-based configuration
 - Input validation
 - Pagination support
+- **Request tracing with unique trace ID for debugging and monitoring**
 
 
 ## Getting Started
@@ -126,6 +127,63 @@ curl -X PUT http://localhost:8080/api/v1/products/1 \
 curl -X DELETE http://localhost:8080/api/v1/products/1
 ```
 
+### Example API Responses with Trace ID
+
+#### Success Response (Single Product)
+```json
+{
+  "data": {
+    "id": 2,
+    "name": "Gaming Laptop",
+    "description": "High-performance gaming laptop",
+    "price": 1500,
+    "stock": 10,
+    "created_at": "2026-01-28T13:35:27.813525Z",
+    "updated_at": "2026-01-28T13:35:27.813525Z"
+  },
+  "meta": {
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
+  }
+}
+```
+
+#### Success Response (Paginated)
+```json
+{
+  "data": [
+    {
+      "id": 2,
+      "name": "Gaming Laptop",
+      "price": 1500,
+      "stock": 10,
+      "created_at": "2026-01-28T13:35:27.813525Z",
+      "updated_at": "2026-01-28T13:35:27.813525Z"
+    }
+  ],
+  "meta": {
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553",
+    "total": 14,
+    "page": 1,
+    "limit": 10,
+    "total_pages": 2
+  }
+}
+```
+
+#### Error Response
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Product not found"
+  },
+  "meta": {
+    "timestamp": "2026-02-02T04:54:12.123456789Z",
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
+  }
+}
+```
+
 ## Running Tests
 
 Run all tests:
@@ -164,6 +222,295 @@ This provides an interactive API documentation where you can test all endpoints 
 - Syntax highlighting
 - Try it out functionality
 - Request/response examples
+
+## Request Tracing & Debugging with Trace ID
+
+Every API request includes a unique `trace_id` that helps you track and debug requests through the system. This is essential for monitoring, troubleshooting, and log analysis.
+
+### What is Trace ID?
+
+A `trace_id` is a UUID v4 (e.g., `e6b70517-9537-4e07-8ae1-ff400c027553`) that uniquely identifies each request throughout its lifecycle - from the moment it hits the API until the response is sent.
+
+### Where to Find Trace ID?
+
+#### 1. In Response Headers
+Every HTTP response includes the trace ID in the headers:
+
+```bash
+curl -i http://localhost:8080/api/v1/products/999
+```
+
+Response headers:
+```
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+X-Trace-ID: e6b70517-9537-4e07-8ae1-ff400c027553
+```
+
+#### 2. In Response Body (Success)
+```json
+{
+  "data": {
+    "id": 2,
+    "name": "Gaming Laptop",
+    "price": 1500,
+    "stock": 10,
+    "created_at": "2026-01-28T13:35:27.813525Z",
+    "updated_at": "2026-01-28T13:35:27.813525Z"
+  },
+  "meta": {
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
+  }
+}
+```
+
+#### 3. In Response Body (Error)
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Product not found"
+  },
+  "meta": {
+    "timestamp": "2026-02-02T04:54:12.123456789Z",
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
+  }
+}
+```
+
+#### 4. In Response Body (Paginated)
+```json
+{
+  "data": [...],
+  "meta": {
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553",
+    "total": 14,
+    "page": 1,
+    "limit": 10,
+    "total_pages": 2
+  }
+}
+```
+
+### Server Logs Format
+
+All requests are automatically logged with the following format:
+
+```
+[trace_id] timestamp | status | duration | client_ip | method | path
+```
+
+Example:
+```
+[e6b70517-9537-4e07-8ae1-ff400c027553] 2026/02/02 - 04:54:12 | 404 |    1.2ms |      172.18.0.1 | GET      /api/v1/products/999
+```
+
+### CLI Commands for Tracing
+
+#### Search for a Specific Trace ID
+
+```bash
+# Basic search
+docker-compose logs api | grep "e6b70517-9537-4e07-8ae1-ff400c027553"
+
+# Or using docker logs
+docker logs go-rest-api | grep "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+#### Search with Context
+
+```bash
+# Show 5 lines before and after the match
+docker-compose logs api | grep -B 5 -A 5 "e6b70517-9537-4e07-8ae1-ff400c027553"
+
+# Show 10 lines before and after
+docker-compose logs api | grep -B 10 -A 10 "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+#### Real-time Monitoring for Specific Trace ID
+
+```bash
+# Follow logs and filter by trace ID
+docker-compose logs -f api | grep --line-buffered "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+#### Search with Color Highlight
+
+```bash
+# Highlight the trace ID in output
+docker-compose logs api | grep --color=always "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+#### Search Recent Logs
+
+```bash
+# Search in last 100 lines
+docker-compose logs --tail=100 api | grep "e6b70517-9537-4e07-8ae1-ff400c027553"
+
+# Search in last 500 lines
+docker-compose logs --tail=500 api | grep "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+#### Filter Only Errors
+
+```bash
+# Search trace ID and show only errors (4xx and 5xx)
+docker-compose logs api | grep "e6b70517-9537-4e07-8ae1-ff400c027553" | grep -E " (4|5)\d{2}"
+```
+
+#### Save Search Results to File
+
+```bash
+# Save to file
+docker-compose logs api | grep "e6b70517-9537-4e07-8ae1-ff400c027553" > trace_search.log
+
+# View the file
+cat trace_search.log
+```
+
+#### Search Multiple Trace IDs
+
+```bash
+# Search for multiple trace IDs at once
+docker-compose logs api | grep -E "e6b70517-9537-4e07-8ae1-ff400c027553|another-trace-id-here|yet-another-id"
+```
+
+#### Real-time Logs with Timestamps
+
+```bash
+# Follow logs with timestamps and filter by trace ID
+docker-compose logs -f --timestamps api | grep "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+### PowerShell Commands (Windows)
+
+```powershell
+# Basic search
+docker-compose logs api | Select-String "e6b70517-9537-4e07-8ae1-ff400c027553"
+
+# Search with context
+docker-compose logs api | Select-String -Context 5,5 "e6b70517-9537-4e07-8ae1-ff400c027553"
+
+# Real-time monitoring
+docker-compose logs -f api | Select-String "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+### Troubleshooting Workflow
+
+When you encounter an error, follow these steps:
+
+#### Step 1: Get the Trace ID from Response
+
+```bash
+curl -X GET http://localhost:8080/api/v1/products/999
+```
+
+Extract the `trace_id` from the response:
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Product not found"
+  },
+  "meta": {
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
+  }
+}
+```
+
+#### Step 2: Search in Server Logs
+
+```bash
+docker-compose logs api | grep "e6b70517-9537-4e07-8ae1-ff400c027553"
+```
+
+#### Step 3: Analyze the Log Entry
+
+```
+[e6b70517-9537-4e07-8ae1-ff400c027553] 2026/02/02 - 04:54:12 | 404 |    1.2ms |      172.18.0.1 | GET      /api/v1/products/999
+```
+
+From this log, you can see:
+- **Timestamp**: When the request occurred
+- **Status**: 404 (Not Found)
+- **Duration**: 1.2ms (Response time)
+- **Client IP**: 172.18.0.1 (Who made the request)
+- **Method**: GET
+- **Path**: /api/v1/products/999 (What was requested)
+
+### Advanced Log Analysis
+
+#### Count Requests by Status Code
+
+```bash
+# Count 404 errors
+docker-compose logs api | grep " 404 " | wc -l
+
+# Count 500 errors
+docker-compose logs api | grep " 500 " | wc -l
+
+# Count all errors (4xx and 5xx)
+docker-compose logs api | grep -E " (4|5)\d{2} " | wc -l
+```
+
+#### Find Slow Requests (>100ms)
+
+```bash
+docker-compose logs api | awk '{if ($5 > 100000) print}'
+```
+
+#### Show All Requests from Specific IP
+
+```bash
+docker-compose logs api | grep "172.18.0.1"
+```
+
+#### Export All Logs for Analysis
+
+```bash
+# Export all logs to file
+docker-compose logs api > full_logs.txt
+
+# Export with date
+docker-compose logs api > "logs_$(date +%Y%m%d_%H%M%S).txt"
+```
+
+### Integration with Monitoring Tools
+
+The trace ID can be integrated with various monitoring platforms:
+
+- **Sentry**: For error tracking and performance monitoring
+- **Datadog**: For APM and log aggregation
+- **ELK Stack**: For Elasticsearch, Logstash, Kibana
+- **Grafana Loki**: For log aggregation and visualization
+- **CloudWatch**: For AWS log monitoring
+- **New Relic**: For full-stack observability
+
+### Best Practices
+
+1. **Always Log Trace ID**: Include trace ID in all application logs for correlation
+2. **Client-Side Logging**: Store trace IDs from API responses for debugging
+3. **Error Reports**: When reporting bugs, always include the trace ID
+4. **Performance Analysis**: Use trace ID to correlate slow requests across services
+5. **Security Auditing**: Trace IDs help audit who accessed what and when
+
+### Example Debugging Session
+
+```bash
+# 1. Make a request that fails
+curl -X GET http://localhost:8080/api/v1/products/999
+
+# 2. Get the trace_id from response (e.g., e6b70517-9537-4e07-8ae1-ff400c027553)
+
+# 3. Search in logs with context
+docker-compose logs api | grep -B 5 -A 5 "e6b70517-9537-4e07-8ae1-ff400c027553"
+
+# 4. Analyze the error
+# The log shows: 404 | GET /api/v1/products/999
+
+# 5. Check if there are any database errors for this trace
+docker-compose logs api | grep "e6b70517-9537-4e07-8ae1-ff400c027553" | grep -i "error"
+```
 
 ## Docker Commands
 

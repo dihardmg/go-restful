@@ -6,6 +6,7 @@ import (
 	"go-rest/internal/config"
 	"go-rest/internal/database"
 	"go-rest/internal/handlers"
+	"go-rest/internal/middleware"
 	"go-rest/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,9 @@ func main() {
 
 	// Setup Gin router
 	router := gin.Default()
+
+	// Add custom logging middleware with trace ID
+	router.Use(middleware.Logger())
 
 	// Serve custom Swagger UI with displayRequestDuration
 	router.GET("/swagger", func(c *gin.Context) {
