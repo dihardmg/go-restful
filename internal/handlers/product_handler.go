@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -111,7 +112,7 @@ type SingleProductResponse struct {
 
 // CreateProduct godoc
 // @Summary Create a new product
-// @Description Create a new product with the provided information. Validation rules:<br>- name: required, min 3 characters<br>- price: required, must be number, must be greater than 0<br>- stock: required, must be number, cannot be negative (can be 0)
+// @Description Create a new product with the provided information. Validation rules:<br>- name: required, min 3 characters<br>- price: required, must be number, must be greater than 0<br>- stock: required, must be whole number, cannot be negative (can be 0)
 // @Tags products
 // @Accept json
 // @Produce json
@@ -292,7 +293,7 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 
 // UpdateProduct godoc
 // @Summary Update a product
-// @Description Update an existing product with the provided information. Validation rules:<br>- name: required, min 3 characters<br>- price: required, must be number, must be greater than 0<br>- stock: required, must be number, cannot be negative (can be 0)
+// @Description Update an existing product with the provided information. Validation rules:<br>- name: required, min 3 characters<br>- price: required, must be number, must be greater than 0<br>- stock: required, must be whole number, cannot be negative (can be 0)
 // @Tags products
 // @Accept json
 // @Produce json
@@ -650,8 +651,13 @@ func validateCreateProduct(req CreateProductRequest) ValidationErrorDetails {
 	} else {
 		switch v := req.Stock.(type) {
 		case float64:
+			// Check if stock is negative
 			if v < 0 {
 				details.Stock = append(details.Stock, "must not be negative")
+			}
+			// Check if stock has decimal part (not a whole number)
+			if math.Mod(v, 1) != 0 {
+				details.Stock = append(details.Stock, "must be a whole number")
 			}
 		case string:
 			details.Stock = append(details.Stock, "must be a number, not string")
@@ -696,8 +702,13 @@ func validateUpdateProduct(req UpdateProductRequest) ValidationErrorDetails {
 	} else {
 		switch v := req.Stock.(type) {
 		case float64:
+			// Check if stock is negative
 			if v < 0 {
 				details.Stock = append(details.Stock, "must not be negative")
+			}
+			// Check if stock has decimal part (not a whole number)
+			if math.Mod(v, 1) != 0 {
+				details.Stock = append(details.Stock, "must be a whole number")
 			}
 		case string:
 			details.Stock = append(details.Stock, "must be a number, not string")

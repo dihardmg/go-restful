@@ -172,8 +172,8 @@ Content-Type: application/json
 {
   "name": "Iihi",
   "description": "",
-  "price": 1,
-  "stock": -10
+  "price": -1100.90,
+  "stock": 10.5
 }
 
 ### Test Validation - Negative Price (Should Fail)

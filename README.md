@@ -202,7 +202,7 @@ When request validation fails, the API returns field-level errors in the `detail
   "details": {
     "name": ["min length is 3"],
     "price": ["must be greater than 0"],
-    "stock": ["must not be negative"]
+    "stock": ["must be a whole number"]
   },
   "meta": {
     "timestamp": "2026-02-02T04:54:12.123456789Z",
@@ -214,7 +214,7 @@ When request validation fails, the API returns field-level errors in the `detail
 **Validation Rules:**
 - `name`: Required, minimum 3 characters
 - `price`: Required, must be a number, must be greater than 0 (cannot be 0 or negative)
-- `stock`: Required, must be a number, cannot be negative (can be 0)
+- `stock`: Required, must be a whole number, cannot be negative (can be 0)
 
 ## Running Tests
 

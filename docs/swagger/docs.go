@@ -69,7 +69,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new product with the provided information. Validation rules:\u003cbr\u003e- name: required, min 3 characters\u003cbr\u003e- price: required, must be number, must be greater than 0\u003cbr\u003e- stock: required, must be number, cannot be negative (can be 0)",
+                "description": "Create a new product with the provided information. Validation rules:\u003cbr\u003e- name: required, min 3 characters\u003cbr\u003e- price: required, must be number, must be greater than 0\u003cbr\u003e- stock: required, must be whole number, cannot be negative (can be 0)",
                 "consumes": [
                     "application/json"
                 ],
@@ -260,7 +260,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update an existing product with the provided information. Validation rules:\u003cbr\u003e- name: required, min 3 characters\u003cbr\u003e- price: required, must be number, must be greater than 0\u003cbr\u003e- stock: required, must be number, cannot be negative (can be 0)",
+                "description": "Update an existing product with the provided information. Validation rules:\u003cbr\u003e- name: required, min 3 characters\u003cbr\u003e- price: required, must be number, must be greater than 0\u003cbr\u003e- stock: required, must be whole number, cannot be negative (can be 0)",
                 "consumes": [
                     "application/json"
                 ],

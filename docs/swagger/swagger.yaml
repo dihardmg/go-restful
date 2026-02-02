@@ -168,8 +168,8 @@ paths:
       - application/json
       description: 'Create a new product with the provided information. Validation
         rules:<br>- name: required, min 3 characters<br>- price: required, must be
-        number, must be greater than 0<br>- stock: required, must be number, cannot
-        be negative (can be 0)'
+        number, must be greater than 0<br>- stock: required, must be whole number,
+        cannot be negative (can be 0)'
       parameters:
       - description: Product information
         in: body
@@ -264,8 +264,8 @@ paths:
       - application/json
       description: 'Update an existing product with the provided information. Validation
         rules:<br>- name: required, min 3 characters<br>- price: required, must be
-        number, must be greater than 0<br>- stock: required, must be number, cannot
-        be negative (can be 0)'
+        number, must be greater than 0<br>- stock: required, must be whole number,
+        cannot be negative (can be 0)'
       parameters:
       - description: Product ID
         in: path
