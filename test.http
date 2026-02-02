@@ -21,10 +21,10 @@ POST {{baseUrl}}/{{apiVersion}}/products
 Content-Type: application/json
 
 {
-  "name": "Gaming Laptop",
-  "description": "High-performance gaming laptop with RTX 4090",
-  "price": 2500,
-  "stock": 10
+  "name": "a1asa",
+  "description": "",
+  "price": 100,
+  "stock": 0
 }
 
 ### 2. Create Product - Office Laptop
@@ -93,7 +93,7 @@ GET {{baseUrl}}/{{apiVersion}}/products
 GET {{baseUrl}}/{{apiVersion}}/products?page=1&limit=5
 
 ### Get All Products - Page 2, Limit 3
-GET {{baseUrl}}/{{apiVersion}}/products?page=2&limit=3
+GET {{baseUrl}}/{{apiVersion}}/products?page=3&limit=10
 
 ### Get Product by ID - ID 1
 GET {{baseUrl}}/{{apiVersion}}/products/18
@@ -170,10 +170,10 @@ POST {{baseUrl}}/{{apiVersion}}/products
 Content-Type: application/json
 
 {
-  "name": "Invalid Product",
-  "description": "Price is zero",
-  "price": 0,
-  "stock": 10
+  "name": "Iihi",
+  "description": "",
+  "price": 1,
+  "stock": -10
 }
 
 ### Test Validation - Negative Price (Should Fail)

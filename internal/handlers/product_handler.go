@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -30,29 +32,29 @@ func NewProductHandler(repo repository.ProductRepository) *ProductHandler {
 
 // CreateProductRequest represents request body for creating a product
 type CreateProductRequest struct {
-	Name        string  `json:"name" binding:"required" example:"Gaming Laptop"`
-	Description string  `json:"description" example:"High-performance gaming laptop"`
-	Price       float64 `json:"price" binding:"required,gt=0" example:"1500.00"`
-	Stock       int     `json:"stock" binding:"gte=0" example:"10"`
+	Name        string      `json:"name" example:"Gaming Laptop"`
+	Description string      `json:"description" example:"High-performance gaming laptop"`
+	Price       interface{} `json:"price" example:"1500.00"`
+	Stock       interface{} `json:"stock" example:"10"`
 }
 
 // UpdateProductRequest represents request body for updating a product
 type UpdateProductRequest struct {
-	Name        string  `json:"name" binding:"required" example:"Gaming Laptop"`
-	Description string  `json:"description" example:"High-performance gaming laptop"`
-	Price       float64 `json:"price" binding:"required,gt=0" example:"1800.00"`
-	Stock       int     `json:"stock" binding:"gte=0" example:"5"`
+	Name        string      `json:"name" example:"Gaming Laptop"`
+	Description string      `json:"description" example:"High-performance gaming laptop"`
+	Price       interface{} `json:"price" example:"1800.00"`
+	Stock       interface{} `json:"stock" example:"5"`
 }
 
 // ProductResponse represents response body for product
 type ProductResponse struct {
-	ID          uint      `json:"id" example:"1"`
-	Name        string    `json:"name" example:"Gaming Laptop"`
-	Description string    `json:"description" example:"High-performance gaming laptop"`
-	Price       float64   `json:"price" example:"1500.00"`
-	Stock       int       `json:"stock" example:"10"`
-	CreatedAt   time.Time `json:"created_at" example:"2026-01-28T13:35:27.813525Z"`
-	UpdatedAt   time.Time `json:"updated_at" example:"2026-01-28T13:35:27.813525Z"`
+	ID          uint       `json:"id" example:"1"`
+	Name        string     `json:"name" example:"Gaming Laptop"`
+	Description string     `json:"description" example:"High-performance gaming laptop"`
+	Price       float64    `json:"price" example:"1500.00"`
+	Stock       int        `json:"stock" example:"10"`
+	CreatedAt   time.Time  `json:"created_at" example:"2026-01-28T13:35:27.813525Z"`
+	UpdatedAt   *time.Time `json:"updated_at" example:"2026-01-28T13:35:27.813525Z"`
 }
 
 // ErrorDetail represents error detail
@@ -69,8 +71,16 @@ type ErrorMeta struct {
 
 // ErrorResponse represents error response
 type ErrorResponse struct {
-	Error ErrorDetail `json:"error"`
-	Meta  ErrorMeta   `json:"meta"`
+	Error   ErrorDetail            `json:"error"`
+	Details *ValidationErrorDetails `json:"details,omitempty"`
+	Meta    ErrorMeta               `json:"meta"`
+}
+
+// ValidationErrorDetails represents validation error details
+type ValidationErrorDetails struct {
+	Name  []string `json:"name,omitempty"`
+	Price []string `json:"price,omitempty"`
+	Stock []string `json:"stock,omitempty"`
 }
 
 // MetaResponse represents metadata for paginated response
@@ -101,27 +111,42 @@ type SingleProductResponse struct {
 
 // CreateProduct godoc
 // @Summary Create a new product
-// @Description Create a new product with the provided information
+// @Description Create a new product with the provided information. Validation rules:<br>- name: required, min 3 characters<br>- price: required, must be number, must be greater than 0<br>- stock: required, must be number, cannot be negative (can be 0)
 // @Tags products
 // @Accept json
 // @Produce json
 // @Param product body CreateProductRequest true "Product information"
 // @Success 201 {object} SingleProductResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "Bad Request - Invalid JSON format"
+// @Failure 422 {object} ErrorResponse "Validation Error - Check 'details' field for specific validation errors per field"
+// @Failure 500 {object} ErrorResponse "Internal Server Error"
 // @Router /products [post]
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	var req CreateProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, newErrorResponseWithErr(c, "BAD_REQUEST", err))
+		return
+	}
+
+	// Validate all fields and collect errors
+	if validationErrors := validateCreateProduct(req); len(validationErrors.Name) > 0 ||
+		len(validationErrors.Price) > 0 || len(validationErrors.Stock) > 0 {
+		c.JSON(http.StatusUnprocessableEntity, newValidationErrorResponse(c, validationErrors))
+		return
+	}
+
+	// Convert interface{} to proper types
+	price, stock, err := convertCreateProductRequest(&req)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, newErrorResponse(c, "VALIDATION_ERROR", err.Error()))
 		return
 	}
 
 	product := &models.Product{
 		Name:        req.Name,
 		Description: req.Description,
-		Price:       req.Price,
-		Stock:       req.Stock,
+		Price:       price,
+		Stock:       stock,
 	}
 
 	if err := h.repo.Create(product); err != nil {
@@ -267,16 +292,17 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 
 // UpdateProduct godoc
 // @Summary Update a product
-// @Description Update an existing product with the provided information
+// @Description Update an existing product with the provided information. Validation rules:<br>- name: required, min 3 characters<br>- price: required, must be number, must be greater than 0<br>- stock: required, must be number, cannot be negative (can be 0)
 // @Tags products
 // @Accept json
 // @Produce json
 // @Param id path int true "Product ID"
 // @Param product body UpdateProductRequest true "Product information"
 // @Success 200 {object} SingleProductResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "Bad Request - Invalid JSON format"
+// @Failure 404 {object} ErrorResponse "Product Not Found"
+// @Failure 422 {object} ErrorResponse "Validation Error - Check 'details' field for specific validation errors per field"
+// @Failure 500 {object} ErrorResponse "Internal Server Error"
 // @Router /products/{id} [put]
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -286,8 +312,22 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	var req UpdateProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, newErrorResponseWithErr(c, "BAD_REQUEST", err))
+		return
+	}
+
+	// Validate all fields and collect errors
+	if validationErrors := validateUpdateProduct(req); len(validationErrors.Name) > 0 ||
+		len(validationErrors.Price) > 0 || len(validationErrors.Stock) > 0 {
+		c.JSON(http.StatusUnprocessableEntity, newValidationErrorResponse(c, validationErrors))
+		return
+	}
+
+	// Convert interface{} to proper types
+	price, stock, err := convertUpdateProductRequest(&req)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, newErrorResponse(c, "VALIDATION_ERROR", err.Error()))
 		return
 	}
 
@@ -305,8 +345,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	// Update product fields
 	product.Name = req.Name
 	product.Description = req.Description
-	product.Price = req.Price
-	product.Stock = req.Stock
+	product.Price = price
+	product.Stock = stock
+
+	// Set UpdatedAt to current time
+	now := time.Now()
+	product.UpdatedAt = &now
 
 	if err := h.repo.Update(product); err != nil {
 		c.JSON(http.StatusInternalServerError, newErrorResponse(c, "INTERNAL_ERROR", "Failed to update product"))
@@ -396,11 +440,17 @@ func (h *ProductHandler) BulkCreate(c *gin.Context) {
 	// Convert request to models
 	products := make([]*models.Product, len(req.Products))
 	for i, p := range req.Products {
+		price, stock, err := convertCreateProductRequest(&p)
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, newErrorResponse(c, "VALIDATION_ERROR", fmt.Sprintf("Product %d: %s", i+1, err.Error())))
+			return
+		}
+
 		products[i] = &models.Product{
 			Name:        p.Name,
 			Description: p.Description,
-			Price:       p.Price,
-			Stock:       p.Stock,
+			Price:       price,
+			Stock:       stock,
 		}
 	}
 
@@ -550,4 +600,193 @@ func newErrorResponseWithErr(c *gin.Context, code string, err error) ErrorRespon
 			TraceID:   getTraceID(c),
 		},
 	}
+}
+
+// newValidationErrorResponse creates a new validation error response with field-level details
+func newValidationErrorResponse(c *gin.Context, details ValidationErrorDetails) ErrorResponse {
+	return ErrorResponse{
+		Error: ErrorDetail{
+			Code:    "VALIDATION_ERROR",
+			Message: "Invalid request data",
+		},
+		Details: &details,
+		Meta: ErrorMeta{
+			Timestamp: time.Now().Format(time.RFC3339Nano),
+			TraceID:   getTraceID(c),
+		},
+	}
+}
+
+// validateCreateProduct validates product creation request and returns all validation errors
+func validateCreateProduct(req CreateProductRequest) ValidationErrorDetails {
+	var details ValidationErrorDetails
+
+	// Validate name field
+	if req.Name == "" {
+		details.Name = append(details.Name, "must not be blank")
+	} else if len(req.Name) < 3 {
+		details.Name = append(details.Name, "min length is 3")
+	}
+
+	// Validate price field - check type first
+	if req.Price == nil {
+		details.Price = append(details.Price, "is required")
+	} else {
+		switch v := req.Price.(type) {
+		case float64:
+			if v <= 0 {
+				details.Price = append(details.Price, "must be greater than 0")
+			}
+		case string:
+			details.Price = append(details.Price, "must be a number, not string")
+		default:
+			details.Price = append(details.Price, "must be a number")
+		}
+	}
+
+	// Validate stock field - check type first
+	if req.Stock == nil {
+		details.Stock = append(details.Stock, "is required")
+	} else {
+		switch v := req.Stock.(type) {
+		case float64:
+			if v < 0 {
+				details.Stock = append(details.Stock, "must not be negative")
+			}
+		case string:
+			details.Stock = append(details.Stock, "must be a number, not string")
+		default:
+			details.Stock = append(details.Stock, "must be a number")
+		}
+	}
+
+	return details
+}
+
+// validateUpdateProduct validates product update request and returns all validation errors
+func validateUpdateProduct(req UpdateProductRequest) ValidationErrorDetails {
+	var details ValidationErrorDetails
+
+	// Validate name field
+	if req.Name == "" {
+		details.Name = append(details.Name, "must not be blank")
+	} else if len(req.Name) < 3 {
+		details.Name = append(details.Name, "min length is 3")
+	}
+
+	// Validate price field - check type first
+	if req.Price == nil {
+		details.Price = append(details.Price, "is required")
+	} else {
+		switch v := req.Price.(type) {
+		case float64:
+			if v <= 0 {
+				details.Price = append(details.Price, "must be greater than 0")
+			}
+		case string:
+			details.Price = append(details.Price, "must be a number, not string")
+		default:
+			details.Price = append(details.Price, "must be a number")
+		}
+	}
+
+	// Validate stock field - check type first
+	if req.Stock == nil {
+		details.Stock = append(details.Stock, "is required")
+	} else {
+		switch v := req.Stock.(type) {
+		case float64:
+			if v < 0 {
+				details.Stock = append(details.Stock, "must not be negative")
+			}
+		case string:
+			details.Stock = append(details.Stock, "must be a number, not string")
+		default:
+			details.Stock = append(details.Stock, "must be a number")
+		}
+	}
+
+	return details
+}
+
+// convertCreateProductRequest converts interface{} values to proper types
+func convertCreateProductRequest(req *CreateProductRequest) (price float64, stock int, err error) {
+	// Convert price
+	if req.Price != nil {
+		switch v := req.Price.(type) {
+		case float64:
+			price = v
+		case int:
+			price = float64(v)
+		case json.Number:
+			f, err := v.Float64()
+			if err != nil {
+				return 0, 0, fmt.Errorf("invalid price format")
+			}
+			price = f
+		default:
+			return 0, 0, fmt.Errorf("price must be a number")
+		}
+	}
+
+	// Convert stock
+	if req.Stock != nil {
+		switch v := req.Stock.(type) {
+		case float64:
+			stock = int(v)
+		case int:
+			stock = v
+		case json.Number:
+			i, err := v.Int64()
+			if err != nil {
+				return 0, 0, fmt.Errorf("invalid stock format")
+			}
+			stock = int(i)
+		default:
+			return 0, 0, fmt.Errorf("stock must be a number")
+		}
+	}
+
+	return price, stock, nil
+}
+
+// convertUpdateProductRequest converts interface{} values to proper types
+func convertUpdateProductRequest(req *UpdateProductRequest) (price float64, stock int, err error) {
+	// Convert price
+	if req.Price != nil {
+		switch v := req.Price.(type) {
+		case float64:
+			price = v
+		case int:
+			price = float64(v)
+		case json.Number:
+			f, err := v.Float64()
+			if err != nil {
+				return 0, 0, fmt.Errorf("invalid price format")
+			}
+			price = f
+		default:
+			return 0, 0, fmt.Errorf("price must be a number")
+		}
+	}
+
+	// Convert stock
+	if req.Stock != nil {
+		switch v := req.Stock.(type) {
+		case float64:
+			stock = int(v)
+		case int:
+			stock = v
+		case json.Number:
+			i, err := v.Int64()
+			if err != nil {
+				return 0, 0, fmt.Errorf("invalid stock format")
+			}
+			stock = int(i)
+		default:
+			return 0, 0, fmt.Errorf("stock must be a number")
+		}
+	}
+
+	return price, stock, nil
 }

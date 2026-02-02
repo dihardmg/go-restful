@@ -139,13 +139,15 @@ curl -X DELETE http://localhost:8080/api/v1/products/1
     "price": 1500,
     "stock": 10,
     "created_at": "2026-01-28T13:35:27.813525Z",
-    "updated_at": "2026-01-28T13:35:27.813525Z"
+    "updated_at": null
   },
   "meta": {
     "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
   }
 }
 ```
+
+**Note**: `updated_at` is `null` when product is first created. It will contain a timestamp only when the product is updated.
 
 #### Success Response (Paginated)
 ```json
@@ -157,7 +159,7 @@ curl -X DELETE http://localhost:8080/api/v1/products/1
       "price": 1500,
       "stock": 10,
       "created_at": "2026-01-28T13:35:27.813525Z",
-      "updated_at": "2026-01-28T13:35:27.813525Z"
+      "updated_at": "2026-01-28T14:30:15.123456Z"
     }
   ],
   "meta": {
@@ -169,6 +171,10 @@ curl -X DELETE http://localhost:8080/api/v1/products/1
   }
 }
 ```
+
+**Note**: `updated_at` will be:
+- `null` for newly created products (never updated)
+- Timestamp for products that have been updated at least once
 
 #### Error Response
 ```json
@@ -183,6 +189,32 @@ curl -X DELETE http://localhost:8080/api/v1/products/1
   }
 }
 ```
+
+#### Validation Error Response (422)
+When request validation fails, the API returns field-level errors in the `details` field:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request data"
+  },
+  "details": {
+    "name": ["min length is 3"],
+    "price": ["must be greater than 0"],
+    "stock": ["must not be negative"]
+  },
+  "meta": {
+    "timestamp": "2026-02-02T04:54:12.123456789Z",
+    "trace_id": "e6b70517-9537-4e07-8ae1-ff400c027553"
+  }
+}
+```
+
+**Validation Rules:**
+- `name`: Required, minimum 3 characters
+- `price`: Required, must be a number, must be greater than 0 (cannot be 0 or negative)
+- `stock`: Required, must be a number, cannot be negative (can be 0)
 
 ## Running Tests
 

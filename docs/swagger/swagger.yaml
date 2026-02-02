@@ -10,23 +10,6 @@ definitions:
     - products
     type: object
   handlers.CreateProductRequest:
-    properties:
-      description:
-        example: High-performance gaming laptop
-        type: string
-      name:
-        example: Gaming Laptop
-        type: string
-      price:
-        example: 1500
-        type: number
-      stock:
-        example: 10
-        minimum: 0
-        type: integer
-    required:
-    - name
-    - price
     type: object
   handlers.ErrorDetail:
     properties:
@@ -48,6 +31,8 @@ definitions:
     type: object
   handlers.ErrorResponse:
     properties:
+      details:
+        $ref: '#/definitions/handlers.ValidationErrorDetails'
       error:
         $ref: '#/definitions/handlers.ErrorDetail'
       meta:
@@ -118,23 +103,21 @@ definitions:
         type: string
     type: object
   handlers.UpdateProductRequest:
+    type: object
+  handlers.ValidationErrorDetails:
     properties:
-      description:
-        example: High-performance gaming laptop
-        type: string
       name:
-        example: Gaming Laptop
-        type: string
+        items:
+          type: string
+        type: array
       price:
-        example: 1800
-        type: number
+        items:
+          type: string
+        type: array
       stock:
-        example: 5
-        minimum: 0
-        type: integer
-    required:
-    - name
-    - price
+        items:
+          type: string
+        type: array
     type: object
 host: localhost:8080
 info:
@@ -183,7 +166,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new product with the provided information
+      description: 'Create a new product with the provided information. Validation
+        rules:<br>- name: required, min 3 characters<br>- price: required, must be
+        number, must be greater than 0<br>- stock: required, must be number, cannot
+        be negative (can be 0)'
       parameters:
       - description: Product information
         in: body
@@ -199,7 +185,12 @@ paths:
           schema:
             $ref: '#/definitions/handlers.SingleProductResponse'
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid JSON format
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "422":
+          description: Validation Error - Check 'details' field for specific validation
+            errors per field
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
         "500":
@@ -271,7 +262,10 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update an existing product with the provided information
+      description: 'Update an existing product with the provided information. Validation
+        rules:<br>- name: required, min 3 characters<br>- price: required, must be
+        number, must be greater than 0<br>- stock: required, must be number, cannot
+        be negative (can be 0)'
       parameters:
       - description: Product ID
         in: path
@@ -292,11 +286,16 @@ paths:
           schema:
             $ref: '#/definitions/handlers.SingleProductResponse'
         "400":
-          description: Bad Request
+          description: Bad Request - Invalid JSON format
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
         "404":
-          description: Not Found
+          description: Product Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "422":
+          description: Validation Error - Check 'details' field for specific validation
+            errors per field
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
         "500":

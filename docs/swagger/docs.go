@@ -69,7 +69,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new product with the provided information",
+                "description": "Create a new product with the provided information. Validation rules:\u003cbr\u003e- name: required, min 3 characters\u003cbr\u003e- price: required, must be number, must be greater than 0\u003cbr\u003e- stock: required, must be number, cannot be negative (can be 0)",
                 "consumes": [
                     "application/json"
                 ],
@@ -99,7 +99,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid JSON format",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error - Check 'details' field for specific validation errors per field",
                         "schema": {
                             "$ref": "#/definitions/handlers.ErrorResponse"
                         }
@@ -254,7 +260,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update an existing product with the provided information",
+                "description": "Update an existing product with the provided information. Validation rules:\u003cbr\u003e- name: required, min 3 characters\u003cbr\u003e- price: required, must be number, must be greater than 0\u003cbr\u003e- stock: required, must be number, cannot be negative (can be 0)",
                 "consumes": [
                     "application/json"
                 ],
@@ -291,13 +297,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request - Invalid JSON format",
                         "schema": {
                             "$ref": "#/definitions/handlers.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Product Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error - Check 'details' field for specific validation errors per field",
                         "schema": {
                             "$ref": "#/definitions/handlers.ErrorResponse"
                         }
@@ -373,30 +385,7 @@ const docTemplate = `{
             }
         },
         "handlers.CreateProductRequest": {
-            "type": "object",
-            "required": [
-                "name",
-                "price"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "High-performance gaming laptop"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Gaming Laptop"
-                },
-                "price": {
-                    "type": "number",
-                    "example": 1500
-                },
-                "stock": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "example": 10
-                }
-            }
+            "type": "object"
         },
         "handlers.ErrorDetail": {
             "type": "object",
@@ -427,6 +416,9 @@ const docTemplate = `{
         "handlers.ErrorResponse": {
             "type": "object",
             "properties": {
+                "details": {
+                    "$ref": "#/definitions/handlers.ValidationErrorDetails"
+                },
                 "error": {
                     "$ref": "#/definitions/handlers.ErrorDetail"
                 },
@@ -528,28 +520,28 @@ const docTemplate = `{
             }
         },
         "handlers.UpdateProductRequest": {
+            "type": "object"
+        },
+        "handlers.ValidationErrorDetails": {
             "type": "object",
-            "required": [
-                "name",
-                "price"
-            ],
             "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "High-performance gaming laptop"
-                },
                 "name": {
-                    "type": "string",
-                    "example": "Gaming Laptop"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "price": {
-                    "type": "number",
-                    "example": 1800
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "stock": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "example": 5
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         }
